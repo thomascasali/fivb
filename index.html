@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Elenco tornei</title>
+    <link rel="stylesheet" href="./css/style-index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+	<script>
+		function caricaDati(yy) {
+            var anno = yy
+            var gender=document.querySelector('input[name="gender"]:checked').value;
+            //carico l'elenco dei tornei
+			var xhttp = new XMLHttpRequest();
+			xhttp.onreadystatechange = function() {
+				if (this.readyState == 4 && this.status == 200) {
+					document.getElementById("tabellaDati").innerHTML = this.responseText;
+				}
+				if (yy==new Date().getFullYear()) MostraNascondi();
+				ImpostaFiltroTipoTornei();
+				document.getElementById("tipoTorneo").value="(tutti)"
+			
+			};
+			xhttp.open("GET", "query.php?sql=elenco&gender="+gender+"&anno=" + anno, true);
+			xhttp.send();
+			
+			document.querySelector("button").textContent = "Nascondi tornei passati";
+		}
+
+		function ImpostaFiltroTipoTornei(){
+			//popolo il combo con le tipologie di torneo contenute nella tabella
+			// Seleziona la terza colonna della tabella
+			var table = document.getElementById("tabellaDati");
+			if (table.rows.length<1) return;
+			var column = 2; // La terza colonna ha l'indice 2 (0-based)
+			// Crea un array vuoto per contenere i valori unici della terza colonna
+			var uniqueValues = ['(tutti)'];
+			// Cicla attraverso le righe della tabella, aggiunge i valori della terza colonna all'array unico
+			for (var i = 1; i < table.rows.length; i++) {
+				var value = table.rows[i].cells[column].textContent.trim();				
+				if (!uniqueValues.includes(value)) {
+					uniqueValues.push(value);
+				}
+			}
+			
+			// Ordina gli elementi nell'array unico
+			uniqueValues.sort();
+
+			// Seleziona l'elemento select
+			var select = document.getElementById("tipoTorneo");
+
+			// Cicla attraverso gli elementi unici e li aggiunge all'elemento select
+			for (var j = 0; j < uniqueValues.length; j++) {
+			var option = document.createElement("option");
+			option.text = uniqueValues[j];
+			select.add(option);
+			}
+		}
+
+		function MostraNascondi() {
+			var rows = document.querySelectorAll("#tabellaDati tbody tr");
+			if(document.querySelector("button").textContent == "Nascondi tornei passati"){
+				//nascondi righe dei tornei passati
+				document.querySelector("button").textContent = "Mostra tornei passati";
+				var today = new Date();
+				today.setHours(0, 0, 0, 0);
+				var minDate = new Date(today.getTime() + 8 * 24 * 60 * 60 * 1000); // data minima = oggi + 8 giorni
+
+				for (var i = 1; i < rows.length; i++) {
+					var rowDate = new Date(ConvertDate_dmY_Ymd(rows[i].querySelector("td:nth-child(2)").textContent));
+					if (rowDate < minDate) {
+						rows[i].style.display = "none";
+					}
+				}
+			}
+			else {
+				document.querySelector("button").textContent = "Nascondi tornei passati";
+				//mostra righe dei tornei passati
+				for (var i = 1; i < rows.length; i++) {
+					rows[i].style.display = "";
+				}
+			}
+		}
+
+		function FiltraTipoTornei() {
+			filtro=document.getElementById("tipoTorneo").value;		
+			if (filtro=="(tutti)") {
+				caricaDati();
+				return;
+			}
+			//rendo visibili tutti i tornei
+			var rows = document.querySelectorAll("#tabellaDati tbody tr");
+			for (var i = 1; i < rows.length; i++) {
+					rows[i].style.display = "";
+			}
+			
+			//imposto il MostraNascondi
+			MostraNascondi();
+			
+			//Filtra per tipo di torneo 
+			for (var i = 1; i < rows.length; i++) {
+				//alert(rows[i].querySelector("td:nth-child(3)").textContent.trim()+" - "+filtro);
+				if (rows[i].querySelector("td:nth-child(3)").textContent.trim()!=filtro) {
+					rows[i].style.display = "none";
+				}
+			}			
+		}
+		
+		function ConvertDate_dmY_Ymd(inputFormat) {
+            dt=inputFormat.split("/")
+			return [dt[2], dt[1], dt[0]].join('-')
+        }
+
+	</script>
+</head>
+<body onload="caricaDati(new Date().getFullYear())">
+<div class="container">
+    <div class="input-group -mb3">
+	<select id="anno" onchange="caricaDati(this.value)">
+		<option value="2023">2023</option>
+		<option value="2022">2022</option>
+		<option value="2021">2021</option>
+	</select>
+	<select id="tipoTorneo" onchange="FiltraTipoTornei()">
+	</select>
+	<div class="input-group-text">
+    <input type="radio" name="gender" value="M" checked onclick="caricaDati()">M
+    <input type="radio" name="gender" value="F" onclick="caricaDati()">F
+	</div>
+	&nbsp;<button class="btn btn-primary" onclick="MostraNascondi()">Nascondi tornei passati</button>
+    </div>
+	<br>
+	<table id="tabellaDati">
+		<!-- qui verrà inserita la tabella dei dati -->
+	</table>
+</div>
+</body>
+</html>
